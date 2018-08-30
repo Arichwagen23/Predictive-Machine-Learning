@@ -1,0 +1,106 @@
+---
+title: "Predictive Model - Weight Lifting"
+author: "Alex Richwagen"
+date: "August 21, 2018"
+output: html_document
+---
+
+Overview
+The following predictive data exercise outlines a different approach for weight lifting than typical means.  Typically, weight lifting is measured by amount of reps vs. quality of workout.  Using the Weight Lifting Exercises Dataset, the following predictive model outlines to measure the quality of the workout vs. just the quantity.  It will measure how well an activity was performed by using different measurements.  Among the measures we will review consist of 1) the problem of specifying correct execution 2) the automatic and robust detection of execution mistakes 3) how to provide feedback on the quality of execution to the user.  They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).  The predictive model consists of 
+
+Background 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data Sources
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+Any use of these datasets should be cited per the website.  
+
+During the loading process below, it will have 20 observations in the dataset.  Cleaning the dataset was also necessary to remove all the "NA" and "DIV/0" values  
+
+```{r Download, warning=FALSE, message=FALSE, cache=TRUE}
+df <- read.csv("WearableComputing_weight_lifting_exercises_biceps_curl_variations.csv")
+str(df)
+summary(df)
+head(df)
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv", na.strings=c("NA", "#DIV/0!", ","))
+library(rpart)
+library(RColorBrewer)
+library(rattle)
+library(caret)
+library(ggplot2)
+library(randomForest)
+features1 <- names(testing[,colSums(is.na(testing)) == 0])[8:59]
+
+#Use features in test case to clean the data
+testing <- testing[,c(features1, "problem_id")]
+training <- training[,c(features1, "classe")]
+dim(training); dim(testing)
+```
+
+Partition the Data to esimate the sample error to get 70% of total cases
+
+```{r partition, warning=FALSE, message=FALSE, cache=TRUE}
+set.seed(12345)
+train_data <- createDataPartition(training$classe, p=0.7, list=FALSE)
+trainingA <- training[train_data,]
+#testingA <- training[-train_data,]
+validation <- training[-train_data,]
+
+
+dim(trainingA); dim(validation)
+
+```
+
+Decision Tree to get above a 75% threshold and Random Forest Build using 30% with a 5% expected error
+
+```{r DT RF, warning=FALSE, message=FALSE, cache=TRUE}
+modFitDT <- rpart(classe ~ ., data = trainingA, method = "class")
+fancyRpartPlot(modFitDT)
+
+set.seed(12345)
+modFitRF <- randomForest(classe ~ ., data = trainingA, ntree = 1000)
+```
+
+Prediction using the above decision tree 
+```{r Prediction, warning=FALSE, message=FALSE, cache=TRUE}
+
+###Confusion Matrix on Development Data data set, testing#
+#predDT <- predict(modFitDT,type = "class", newdata = trainingA)
+#confusionMatrix(predDT, trainingA$classe)
+
+#predRF <- predict(modFitRF,type = "class", newdata = trainingA)
+#confusionMatrix(predRF, trainingA$classe)
+
+
+```
+
+Predicting testing data
+
+RandomForest & DecisionTree prediction
+```{r RF DT Prediction, warning=FALSE, message=FALSE, cache=TRUE}
+###Validation Confusion matrix ##
+predDT.validation <- predict(modFitDT,type = "class", newdata = validation)
+confusionMatrix(predDT.validation, validation$classe)
+
+predRF.validation <- predict(modFitRF,type = "class", newdata = validation)
+confusionMatrix(predRF.validation, validation$classe)
+
+predR.testing <- predict(modFitRF, type = "class", newdata = testing)
+```
+
+Results 
+a: Random Forest 99.63%
+
+
+
+
+
+
